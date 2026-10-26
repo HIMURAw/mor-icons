@@ -22,9 +22,17 @@ from PIL import Image
 
 HOME = Path.home()
 SRC = HOME / ".local/src/papirus-icon-theme"
-OUT = HOME / ".local/share/icons"
+FINAL = HOME / ".local/share/icons"
+# Built aside and swapped in at the end: rebuilding in place left every icon broken for minutes.
+# Symlinks inside are relative (../Mor-Base/...), so both themes move together.
+OUT = FINAL / ".tema-build"
 BASE, THEME = "Mor-Base", "Mor"
-HUE = 265 / 360          # mor
+sys.path.insert(0, str(HOME / ".local/src/mor-theme"))
+from tema import current  # noqa: E402  the chosen colour theme (tema-rengi)
+
+PALETTE = current()
+GREY = PALETTE["sat"] == 0
+HUE = ((PALETTE["hue"] + 7) % 360) / 360  # icons sit a little warmer than the chrome (violet: 265)
 SPREAD = 0.12            # asıl tonun ne kadarı kalsın (çeşitlilik)
 TINT = {"apps", "places", "mimetypes", "devices", "categories"}
 
@@ -33,6 +41,8 @@ HEX = re.compile(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b")
 
 def recolor_rgb(r, g, b):
     h, l, s = colorsys.rgb_to_hls(r, g, b)
+    if GREY:                                    # black / white / grey theme: no colour at all
+        return colorsys.hls_to_rgb(h, l, 0.0)
     if s < 0.12 or l > 0.97 or l < 0.03:      # gri, beyaz, siyah: hafif morluk
         s2 = 0.18 if 0.03 <= l <= 0.97 else s
         h2 = HUE
@@ -246,12 +256,25 @@ def colored_small_places(root):
     return n
 
 
+def swap_in():
+    for name in (BASE, THEME):
+        old = FINAL / f".tema-old-{name}"
+        shutil.rmtree(old, ignore_errors=True)
+        if (FINAL / name).exists():
+            (FINAL / name).rename(old)
+        (OUT / name).rename(FINAL / name)
+        shutil.rmtree(old, ignore_errors=True)
+        subprocess.run(["gtk-update-icon-cache", "-q", "-f", str(FINAL / name)])
+
+
 if __name__ == "__main__":
+    shutil.rmtree(OUT, ignore_errors=True)
+    OUT.mkdir(parents=True)
     copy_themes()
     n = tint_tree(OUT / BASE) + tint_tree(OUT / THEME)
     extra = add_fallbacks()
     print("renkli 16px klasör:", colored_small_places(OUT / THEME))
-    for name in (BASE, THEME):
-        subprocess.run(["gtk-update-icon-cache", "-q", "-f", str(OUT / name)])
+    swap_in()
+    OUT = FINAL  # the functions below look at the installed theme now
     print("yol yerine ad:", ", ".join(override_absolute()))
     print(f"boyanan svg: {n}, Papirus'ta olmayan uygulama: {len(extra)} -> {', '.join(extra[:40])}")
