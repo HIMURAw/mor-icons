@@ -32,7 +32,9 @@ from tema import current  # noqa: E402  the chosen colour theme (tema-rengi)
 
 PALETTE = current()
 GREY = PALETTE["sat"] == 0
-HUE = ((PALETTE["hue"] + 7) % 360) / 360  # icons sit a little warmer than the chrome (violet: 265)
+HUE = PALETTE["icon_hue"] / 360
+ICON_LUM = PALETTE["icon_lum"]    # mid tones darker: a light hue at violet's lightness looks washed out
+ICON_SAT = PALETTE["icon_sat"]
 SPREAD = 0.12            # asıl tonun ne kadarı kalsın (çeşitlilik)
 TINT = {"apps", "places", "mimetypes", "devices", "categories"}
 
@@ -49,7 +51,9 @@ def recolor_rgb(r, g, b):
     else:
         d = ((h - HUE + 0.5) % 1.0) - 0.5
         h2 = (HUE + d * SPREAD) % 1.0
-        s2 = min(1.0, s * 0.85 + 0.12)
+        s2 = min(1.0, s * 0.85 + 0.12 + ICON_SAT)
+        if 0.25 < l < 0.92:
+            l *= ICON_LUM
     return colorsys.hls_to_rgb(h2, l, s2)
 
 
