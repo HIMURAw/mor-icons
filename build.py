@@ -21,13 +21,19 @@ from pathlib import Path
 from PIL import Image
 
 HOME = Path.home()
-SRC = HOME / ".local/src/papirus-icon-theme"
+# Papirus: a git clone (has Papirus/ and Papirus-Dark/ inside) or the distro package.
+SRC = next((d for d in (Path(os.environ.get("PAPIRUS_SRC", HOME / ".local/src/papirus-icon-theme")),
+                        HOME / ".local/share/icons", Path("/usr/share/icons"))
+            if (d / "Papirus").is_dir() and (d / "Papirus-Dark").is_dir()), None)
+if SRC is None:
+    sys.exit("Papirus not found: git clone https://github.com/PapirusDevelopmentTeam/papirus-icon-theme "
+             "~/.local/src/papirus-icon-theme (or install the papirus-icon-theme package)")
 FINAL = HOME / ".local/share/icons"
 # Built aside and swapped in at the end: rebuilding in place left every icon broken for minutes.
 # Symlinks inside are relative (../Mor-Base/...), so both themes move together.
 OUT = FINAL / ".tema-build"
 BASE, THEME = "Mor-Base", "Mor"
-sys.path.insert(0, str(HOME / ".local/src/mor-theme"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "mor-theme"))  # cloned side by side
 from tema import current  # noqa: E402  the chosen colour theme (tema-rengi)
 
 PALETTE = current()
