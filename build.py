@@ -130,7 +130,7 @@ def copy_themes():
         idx = OUT / name / "index.theme"
         s = idx.read_text()
         s = re.sub(r"^Name=.*$", f"Name={title}", s, count=1, flags=re.M)
-        s = re.sub(r"^Comment=.*$", "Comment=Papirus, mor tonlarda (Harvis teması)", s, count=1, flags=re.M)
+        s = re.sub(r"^Comment=.*$", "Comment=Papirus, mor tonlarda", s, count=1, flags=re.M)
         idx.write_text(s)
 
 
